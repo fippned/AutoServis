@@ -5,6 +5,18 @@ namespace AutoService
 {
     internal class Program
     {
+        // Довідник видів робіт (для таблиці з двома входами)
+        static readonly string[] WorkTypes =
+        {
+            "Діагностика", "Заміна мастила", "Гальма",
+            "Ходова", "Двигун", "Електрика"
+        };
+
+        // Середня вартість одного замовлення за видом робіт, грн
+        static readonly double[] WorkPrices = { 300, 450, 800, 1200, 3500, 900 };
+
+        static readonly string[] Days = { "Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд" };
+
         static void Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
@@ -33,7 +45,7 @@ namespace AutoService
                         Pause();
                         break;
                     case "3":
-                        Console.WriteLine("Цей пункт буде реалізовано в наступній частині.");
+                        ShowWorkloadTable();
                         Pause();
                         break;
                     case "0":
@@ -94,5 +106,80 @@ namespace AutoService
             }
         }
 
+        // Таблиця з двома входами: рядки — види робіт, стовпці — дні тижня
+        static void ShowWorkloadTable()
+        {
+            int rows, cols;
+
+            if (!ReadSize("Кількість рядків (видів робіт)", WorkTypes.Length, out rows))
+                return;
+            if (!ReadSize("Кількість стовпців (днів тижня)", Days.Length, out cols))
+                return;
+
+            Console.WriteLine();
+            Console.WriteLine("Виторг за видами робіт і днями тижня, грн");
+
+            // Шапка
+            Console.Write($"{"",-16}");
+            for (int c = 0; c < cols; c++)
+            {
+                Console.Write($"{Days[c],9}");
+            }
+            Console.WriteLine($"{"Разом",12}");
+
+            double[] colTotals = new double[cols];
+            double grandTotal = 0;
+
+            for (int r = 0; r < rows; r++)
+            {
+                Console.Write($"{WorkTypes[r],-16}");
+                double rowTotal = 0; // підсумок рядка — свій для кожного рядка
+
+                for (int c = 0; c < cols; c++)
+                {
+                    int orders = ((r + 2) * (c + 3) + c) % 5 + 1; // кількість замовлень
+                    double sum = orders * WorkPrices[r];
+
+                    Console.Write($"{sum,9:F0}");
+                    rowTotal += sum;
+                    colTotals[c] += sum;
+                }
+
+                Console.WriteLine($"{rowTotal,12:F0}");
+                grandTotal += rowTotal;
+            }
+
+            // Рядок підсумків
+            Console.Write($"{"Разом",-16}");
+            for (int c = 0; c < cols; c++)
+            {
+                Console.Write($"{colTotals[c],9:F0}");
+            }
+            Console.WriteLine($"{grandTotal,12:F0}");
+        }
+
+        // Читає розмір таблиці; false, якщо ввід неправильний
+        static bool ReadSize(string prompt, int max, out int value)
+        {
+            Console.Write($"{prompt} (1–{max}): ");
+            string text = Console.ReadLine();
+
+            if (!int.TryParse(text, out value))
+            {
+                Console.WriteLine("Помилка: потрібно ввести ціле число.");
+                return false;
+            }
+            if (value <= 0)
+            {
+                Console.WriteLine("Помилка: число має бути більшим за нуль.");
+                return false;
+            }
+            if (value > max)
+            {
+                Console.WriteLine($"Помилка: максимум — {max}.");
+                return false;
+            }
+            return true;
+        }
     }
 }
