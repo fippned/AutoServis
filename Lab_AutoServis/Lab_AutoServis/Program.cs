@@ -17,6 +17,11 @@ namespace AutoService
 
         static readonly string[] Days = { "Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд" };
 
+        const double HourRate = 450;     // вартість нормо-години, грн
+        const double PartsShare = 0.15;  // частка запчастин від вартості робіт
+        const double PartsFixed = 200;   // фіксована частина запчастин, грн
+        const double MaxHours = 24;      // найбільша тривалість ремонту, год
+
         static void Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
@@ -24,40 +29,38 @@ namespace AutoService
 
             while (running)
             {
-                Console.WriteLine("=== Автосервіс ===");
-                Console.WriteLine("1 — довідка про програму");
-                Console.WriteLine("2 — таблиця вартості ремонту за годинами");
-                Console.WriteLine("3 — звіт: виторг за видами робіт і днями тижня");
-                Console.WriteLine("0 — вихід");
-                Console.Write("Ваш вибір: ");
-
+                ShowMenu();
                 string choice = Console.ReadLine();
                 Console.WriteLine();
 
                 switch (choice)
                 {
-                    case "1":
-                        ShowAbout();
-                        Pause();
-                        break;
-                    case "2":
-                        ShowCostTable();
-                        Pause();
-                        break;
-                    case "3":
-                        ShowWorkloadTable();
-                        Pause();
-                        break;
-                    case "0":
-                        running = false;
-                        Console.WriteLine("До побачення.");
-                        break;
-                    default:
-                        Console.WriteLine("Немає такого пункту. Спробуйте ще раз.");
-                        Pause();
-                        break;
+                    case "1": ShowAbout(); Pause(); break;
+                    case "2": ShowCostTable(); Pause(); break;
+                    case "3": ShowWorkloadTable(); Pause(); break;
+                    case "0": running = false; break;
+                    default: ShowUnknownChoice(); Pause(); break;
                 }
             }
+
+            Console.WriteLine("До побачення.");
+        }
+
+        // Виводить головне меню
+        static void ShowMenu()
+        {
+            Console.WriteLine("=== Автосервіс ===");
+            Console.WriteLine("1 — довідка про програму");
+            Console.WriteLine("2 — таблиця вартості ремонту за годинами");
+            Console.WriteLine("3 — звіт: виторг за видами робіт і днями тижня");
+            Console.WriteLine("0 — вихід");
+            Console.Write("Ваш вибір: ");
+        }
+
+        // Повідомляє, що такого пункту меню немає
+        static void ShowUnknownChoice()
+        {
+            Console.WriteLine("Немає такого пункту. Спробуйте ще раз.");
         }
 
         // Пауза й очищення екрана після дії
@@ -86,23 +89,38 @@ namespace AutoService
             Console.WriteLine("Підсумкова величина: сума по кожному виду робіт за місяць.");
         }
 
-        // Табулювання: вартість ремонту залежно від кількості годин
+        // Табулювання з фіксованими межами
         static void ShowCostTable()
         {
-            double from = 0.5;     // початок проміжку, год
-            double to = 5.0;       // кінець проміжку, год
-            double step = 0.5;     // крок, год
-            double rate = 450;     // вартість нормо-години, грн
+            PrintCostTable(0.5, 5.0, 0.5);
+        }
 
+        // Повертає вартість ремонту: години × ціна години + запчастини
+        static double CalculateCost(double hours, double rate, double parts)
+        {
+            return hours * rate + parts;
+        }
+
+        // Повертає вартість запчастин за вартістю робіт
+        static double CalculateParts(double workCost)
+        {
+            return workCost * PartsShare + PartsFixed;
+        }
+
+        // Табулює вартість ремонту від start до end з кроком step
+        static void PrintCostTable(double start, double end, double step)
+        {
             Console.WriteLine("Вартість ремонту залежно від тривалості робіт");
             Console.WriteLine($"{"Годин",8}{"Роботи, грн",16}{"З запчастинами",18}");
 
-            // 1e-9 — запас на похибку дробових чисел, щоб не зникла остання стрічка
-            for (double h = from; h <= to + 1e-9; h += step)
+            // Годину рахуємо від номера кроку, а не додаванням, щоб похибка не накопичувалась.
+            // 1e-9 — запас, щоб не зникла остання стрічка.
+            for (int i = 0; start + i * step <= end + 1e-9; i++)
             {
-                double work = h * rate;
-                double total = work + work * 0.15 + 200; // запчастини: 15% від робіт + 200 грн
-                Console.WriteLine($"{h,8:F2}{work,16:F2}{total,18:F2}");
+                double hours = start + i * step;
+                double work = CalculateCost(hours, HourRate, 0);
+                double total = CalculateCost(hours, HourRate, CalculateParts(work));
+                Console.WriteLine($"{hours,8:F2}{work,16:F2}{total,18:F2}");
             }
         }
 
