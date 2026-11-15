@@ -139,43 +139,77 @@ namespace AutoService
             Console.WriteLine();
             Console.WriteLine("Виторг за видами робіт і днями тижня, грн");
 
-            // Шапка
+            PrintWorkloadHeader(cols);
+            for (int r = 0; r < rows; r++)
+            {
+                PrintWorkloadRow(r, cols);
+            }
+            PrintWorkloadFooter(rows, cols);
+        }
+
+        // Виводить шапку: дні тижня й стовпець підсумку
+        static void PrintWorkloadHeader(int cols)
+        {
             Console.Write($"{"",-16}");
             for (int c = 0; c < cols; c++)
             {
                 Console.Write($"{Days[c],9}");
             }
             Console.WriteLine($"{"Разом",12}");
+        }
 
-            double[] colTotals = new double[cols];
-            double grandTotal = 0;
-
-            for (int r = 0; r < rows; r++)
-            {
-                Console.Write($"{WorkTypes[r],-16}");
-                double rowTotal = 0; // підсумок рядка — свій для кожного рядка
-
-                for (int c = 0; c < cols; c++)
-                {
-                    int orders = ((r + 2) * (c + 3) + c) % 5 + 1; // кількість замовлень
-                    double sum = orders * WorkPrices[r];
-
-                    Console.Write($"{sum,9:F0}");
-                    rowTotal += sum;
-                    colTotals[c] += sum;
-                }
-
-                Console.WriteLine($"{rowTotal,12:F0}");
-                grandTotal += rowTotal;
-            }
-
-            // Рядок підсумків
-            Console.Write($"{"Разом",-16}");
+        // Виводить один рядок таблиці: вид робіт, виторг по днях і підсумок рядка
+        static void PrintWorkloadRow(int r, int cols)
+        {
+            Console.Write($"{WorkTypes[r],-16}");
             for (int c = 0; c < cols; c++)
             {
-                Console.Write($"{colTotals[c],9:F0}");
+                Console.Write($"{CalculateRevenue(r, c),9:F0}");
+            }
+            Console.WriteLine($"{CalculateRowTotal(r, cols),12:F0}");
+        }
+
+        // Виводить рядок підсумків по стовпцях і загальний підсумок
+        static void PrintWorkloadFooter(int rows, int cols)
+        {
+            Console.Write($"{"Разом",-16}");
+            double grandTotal = 0;
+            for (int c = 0; c < cols; c++)
+            {
+                double columnTotal = CalculateColumnTotal(c, rows);
+                Console.Write($"{columnTotal,9:F0}");
+                grandTotal += columnTotal;
             }
             Console.WriteLine($"{grandTotal,12:F0}");
+        }
+
+        // Повертає виторг виду робіт r у день c (кількість замовлень × ціна)
+        static double CalculateRevenue(int r, int c)
+        {
+            int orders = ((r + 2) * (c + 3) + c) % 5 + 1; // умовна кількість замовлень
+            return orders * WorkPrices[r];
+        }
+
+        // Повертає суму виторгу виду робіт r за перші cols днів
+        static double CalculateRowTotal(int r, int cols)
+        {
+            double total = 0;
+            for (int c = 0; c < cols; c++)
+            {
+                total += CalculateRevenue(r, c);
+            }
+            return total;
+        }
+
+        // Повертає суму виторгу дня c за перші rows видів робіт
+        static double CalculateColumnTotal(int c, int rows)
+        {
+            double total = 0;
+            for (int r = 0; r < rows; r++)
+            {
+                total += CalculateRevenue(r, c);
+            }
+            return total;
         }
 
         // Читає дійсне число з клавіатури в межах [min, max].
