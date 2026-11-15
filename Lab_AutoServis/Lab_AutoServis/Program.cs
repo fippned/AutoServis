@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Text;
 
 namespace AutoService
@@ -89,10 +90,15 @@ namespace AutoService
             Console.WriteLine("Підсумкова величина: сума по кожному виду робіт за місяць.");
         }
 
-        // Табулювання з фіксованими межами
+        // Питає межі й крок, потім виводить таблицю вартості
         static void ShowCostTable()
         {
-            PrintCostTable(0.5, 5.0, 0.5);
+            double start = ReadDouble("Початок, годин", 0, MaxHours);
+            double end = ReadDouble("Кінець, годин", start, MaxHours);
+            double step = ReadDouble("Крок, годин", 0.1, MaxHours);
+
+            Console.WriteLine();
+            PrintCostTable(start, end, step);
         }
 
         // Повертає вартість ремонту: години × ціна години + запчастини
@@ -127,12 +133,8 @@ namespace AutoService
         // Таблиця з двома входами: рядки — види робіт, стовпці — дні тижня
         static void ShowWorkloadTable()
         {
-            int rows, cols;
-
-            if (!ReadSize("Кількість рядків (видів робіт)", WorkTypes.Length, out rows))
-                return;
-            if (!ReadSize("Кількість стовпців (днів тижня)", Days.Length, out cols))
-                return;
+            int rows = ReadInt("Кількість рядків (видів робіт)", 1, WorkTypes.Length);
+            int cols = ReadInt("Кількість стовпців (днів тижня)", 1, Days.Length);
 
             Console.WriteLine();
             Console.WriteLine("Виторг за видами робіт і днями тижня, грн");
@@ -176,28 +178,59 @@ namespace AutoService
             Console.WriteLine($"{grandTotal,12:F0}");
         }
 
-        // Читає розмір таблиці; false, якщо ввід неправильний
-        static bool ReadSize(string prompt, int max, out int value)
+        // Читає дійсне число з клавіатури в межах [min, max].
+        // Питає знову, доки не отримає прийнятне значення.
+        static double ReadDouble(string prompt, double min, double max)
         {
-            Console.Write($"{prompt} (1–{max}): ");
-            string text = Console.ReadLine();
+            while (true)
+            {
+                Console.Write($"{prompt} ({min:0.##}–{max:0.##}): ");
+                string text = Console.ReadLine();
 
-            if (!int.TryParse(text, out value))
-            {
-                Console.WriteLine("Помилка: потрібно ввести ціле число.");
-                return false;
+                // Крапка й кома однаково приймаються як роздільник
+                if (text != null)
+                {
+                    text = text.Trim().Replace(',', '.');
+                }
+
+                double value;
+                if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+                    || double.IsNaN(value) || double.IsInfinity(value))
+                {
+                    Console.WriteLine("Помилка: потрібно ввести число.");
+                    continue;
+                }
+                if (value < min || value > max)
+                {
+                    Console.WriteLine($"Помилка: число має бути від {min:0.##} до {max:0.##}.");
+                    continue;
+                }
+                return value;
             }
-            if (value <= 0)
+        }
+
+        // Читає ціле число з клавіатури в межах [min, max].
+        // Питає знову, доки не отримає прийнятне значення.
+        static int ReadInt(string prompt, int min, int max)
+        {
+            while (true)
             {
-                Console.WriteLine("Помилка: число має бути більшим за нуль.");
-                return false;
+                Console.Write($"{prompt} ({min}–{max}): ");
+                string text = Console.ReadLine();
+
+                int value;
+                if (!int.TryParse(text, out value))
+                {
+                    Console.WriteLine("Помилка: потрібно ввести ціле число.");
+                    continue;
+                }
+                if (value < min || value > max)
+                {
+                    Console.WriteLine($"Помилка: число має бути від {min} до {max}.");
+                    continue;
+                }
+                return value;
             }
-            if (value > max)
-            {
-                Console.WriteLine($"Помилка: максимум — {max}.");
-                return false;
-            }
-            return true;
         }
     }
 }
