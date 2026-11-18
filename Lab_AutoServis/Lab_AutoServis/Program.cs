@@ -26,11 +26,15 @@ namespace AutoService
         static void Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
-            bool running = true;
 
+            // Сховище вартостей замовлень: масив фіксованої довжини й лічильник заповнених
+            double[] costs = new double[100];
+            int count = 0;
+
+            bool running = true;
             while (running)
             {
-                ShowMenu();
+                ShowMenu(count, costs.Length);
                 string choice = Console.ReadLine();
                 Console.WriteLine();
 
@@ -39,6 +43,8 @@ namespace AutoService
                     case "1": ShowAbout(); Pause(); break;
                     case "2": ShowCostTable(); Pause(); break;
                     case "3": ShowWorkloadTable(); Pause(); break;
+                    case "4": AddValue(costs, ref count, ReadDouble("Вартість замовлення, грн", 0, 1000000), costs.Length); Pause(); break;
+                    case "5": PrintValues(costs, count); Pause(); break;
                     case "0": running = false; break;
                     default: ShowUnknownChoice(); Pause(); break;
                 }
@@ -47,13 +53,16 @@ namespace AutoService
             Console.WriteLine("До побачення.");
         }
 
-        // Виводить головне меню
-        static void ShowMenu()
+        // Виводить головне меню й скільки записів зараз у масиві
+        static void ShowMenu(int count, int capacity)
         {
             Console.WriteLine("=== Автосервіс ===");
+            Console.WriteLine($"Записів у масиві: {count} з {capacity}");
             Console.WriteLine("1 — довідка про програму");
             Console.WriteLine("2 — таблиця вартості ремонту за годинами");
             Console.WriteLine("3 — звіт: виторг за видами робіт і днями тижня");
+            Console.WriteLine("4 — додати значення (вартість замовлення)");
+            Console.WriteLine("5 — показати вміст масиву");
             Console.WriteLine("0 — вихід");
             Console.Write("Ваш вибір: ");
         }
@@ -212,6 +221,37 @@ namespace AutoService
             return total;
         }
 
+
+        // Додає значення в кінець масиву. Лічильник — ref, бо метод має змінити його в Main.
+        // Масив ref не потрібен: він і так передається посиланням.
+        static void AddValue(double[] values, ref int count, double newValue, int capacity)
+        {
+            if (count == capacity)
+            {
+                Console.WriteLine("Місця більше немає.");
+                return;
+            }
+
+            values[count] = newValue;
+            count++;
+            Console.WriteLine($"Значення додано. Записів: {count}.");
+        }
+
+        // Виводить вміст масиву до count таблицею з номерами
+        static void PrintValues(double[] values, int count)
+        {
+            if (count == 0)
+            {
+                Console.WriteLine("Масив порожній.");
+                return;
+            }
+
+            Console.WriteLine($"{"№",4}{"Вартість, грн",18}");
+            for (int i = 0; i < count; i++)
+            {
+                Console.WriteLine($"{i + 1,4}{values[i],18:F2}");
+            }
+        }
         // Читає дійсне число з клавіатури в межах [min, max].
         // Питає знову, доки не отримає прийнятне значення.
         static double ReadDouble(string prompt, double min, double max)
