@@ -45,6 +45,9 @@ namespace AutoService
                     case "3": ShowWorkloadTable(); Pause(); break;
                     case "4": AddValue(costs, ref count, ReadDouble("Вартість замовлення, грн", 0, 1000000), costs.Length); Pause(); break;
                     case "5": PrintValues(costs, count); Pause(); break;
+                    case "6": PrintMax(costs, count); Pause(); break;
+                    case "7": RemoveAt(costs, ref count, ReadInt("Номер запису для видалення", 1, costs.Length) - 1); Pause(); break;
+                    case "8": PrintStatistics(costs, count); Pause(); break;
                     case "0": running = false; break;
                     default: ShowUnknownChoice(); Pause(); break;
                 }
@@ -63,6 +66,9 @@ namespace AutoService
             Console.WriteLine("3 — звіт: виторг за видами робіт і днями тижня");
             Console.WriteLine("4 — додати значення (вартість замовлення)");
             Console.WriteLine("5 — показати вміст масиву");
+            Console.WriteLine("6 — знайти найбільше значення");
+            Console.WriteLine("7 — видалити запис за номером");
+            Console.WriteLine("8 — показати статистику");
             Console.WriteLine("0 — вихід");
             Console.Write("Ваш вибір: ");
         }
@@ -251,6 +257,98 @@ namespace AutoService
             {
                 Console.WriteLine($"{i + 1,4}{values[i],18:F2}");
             }
+        }
+
+        // Шукає найбільше значення. Повертає false, якщо набір порожній.
+        // max і index — out: метод створює їх, а не змінює наявні.
+        // index — позиція в масиві з нуля.
+        static bool FindMax(double[] values, int count, out double max, out int index)
+        {
+            max = 0;
+            index = -1;
+
+            if (count == 0)
+            {
+                return false;
+            }
+
+            max = values[0];
+            index = 0;
+            for (int i = 1; i < count; i++)
+            {
+                if (values[i] > max)
+                {
+                    max = values[i];
+                    index = i;
+                }
+            }
+            return true;
+        }
+
+        // Виводить найбільше значення та його номер у таблиці (з одиниці)
+        static void PrintMax(double[] values, int count)
+        {
+            double max;
+            int index;
+
+            if (!FindMax(values, count, out max, out index))
+            {
+                Console.WriteLine("Масив порожній, максимуму немає.");
+                return;
+            }
+
+            Console.WriteLine($"Найбільша вартість: {max:F2} грн, запис №{index + 1}.");
+        }
+
+        // Видаляє елемент за позицією index (з нуля), зсуваючи решту вліво.
+        // Лічильник — ref, бо він зменшується.
+        static void RemoveAt(double[] values, ref int count, int index)
+        {
+            if (index < 0 || index >= count)
+            {
+                Console.WriteLine("Помилка: запису з таким номером немає.");
+                return;
+            }
+
+            for (int i = index; i < count - 1; i++)
+            {
+                values[i] = values[i + 1];
+            }
+
+            count--;
+            values[count] = 0; // очищаємо зайвий хвіст
+            Console.WriteLine($"Запис видалено. Записів: {count}.");
+        }
+
+        // Рахує суму й середнє. Для порожнього набору середнє дорівнює нулю,
+        // щоб не ділити на нуль.
+        static void Statistics(double[] values, int count, out double sum, out double average)
+        {
+            sum = 0;
+            for (int i = 0; i < count; i++)
+            {
+                sum += values[i];
+            }
+
+            average = count > 0 ? sum / count : 0;
+        }
+
+        // Виводить кількість записів, суму й середнє
+        static void PrintStatistics(double[] values, int count)
+        {
+            if (count == 0)
+            {
+                Console.WriteLine("Масив порожній, статистики немає.");
+                return;
+            }
+
+            double sum;
+            double average;
+            Statistics(values, count, out sum, out average);
+
+            Console.WriteLine($"Записів: {count}");
+            Console.WriteLine($"Сума: {sum:F2} грн");
+            Console.WriteLine($"Середнє: {average:F2} грн");
         }
         // Читає дійсне число з клавіатури в межах [min, max].
         // Питає знову, доки не отримає прийнятне значення.
