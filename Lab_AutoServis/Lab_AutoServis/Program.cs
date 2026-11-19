@@ -6,18 +6,6 @@ namespace AutoService
 {
     internal class Program
     {
-        // Довідник видів робіт (для таблиці з двома входами)
-        static readonly string[] WorkTypes =
-        {
-            "Діагностика", "Заміна мастила", "Гальма",
-            "Ходова", "Двигун", "Електрика"
-        };
-
-        // Середня вартість одного замовлення за видом робіт, грн
-        static readonly double[] WorkPrices = { 300, 450, 800, 1200, 3500, 900 };
-
-        static readonly string[] Days = { "Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд" };
-
         const double HourRate = 450;     // вартість нормо-години, грн
         const double PartsShare = 0.15;  // частка запчастин від вартості робіт
         const double PartsFixed = 200;   // фіксована частина запчастин, грн
@@ -26,6 +14,15 @@ namespace AutoService
         static void Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
+
+            // Довідники для таблиці виторгу — тепер це локальні змінні, а не поля класу
+            string[] workTypes =
+            {
+                "Діагностика", "Заміна мастила", "Гальма",
+                "Ходова", "Двигун", "Електрика"
+            };
+            double[] workPrices = { 300, 450, 800, 1200, 3500, 900 };
+            string[] days = { "Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд" };
 
             // Сховище вартостей замовлень: масив фіксованої довжини й лічильник заповнених
             double[] costs = new double[100];
@@ -42,12 +39,13 @@ namespace AutoService
                 {
                     case "1": ShowAbout(); Pause(); break;
                     case "2": ShowCostTable(); Pause(); break;
-                    case "3": ShowWorkloadTable(); Pause(); break;
+                    case "3": ShowWorkloadTable(workTypes, workPrices, days); Pause(); break;
                     case "4": AddValue(costs, ref count, ReadDouble("Вартість замовлення, грн", 0, 1000000), costs.Length); Pause(); break;
                     case "5": PrintValues(costs, count); Pause(); break;
                     case "6": PrintMax(costs, count); Pause(); break;
                     case "7": RemoveAt(costs, ref count, ReadInt("Номер запису для видалення", 1, costs.Length) - 1); Pause(); break;
                     case "8": PrintStatistics(costs, count); Pause(); break;
+                    case "9": ShowPassingDemo(); Pause(); break;
                     case "0": running = false; break;
                     default: ShowUnknownChoice(); Pause(); break;
                 }
@@ -69,6 +67,7 @@ namespace AutoService
             Console.WriteLine("6 — знайти найбільше значення");
             Console.WriteLine("7 — видалити запис за номером");
             Console.WriteLine("8 — показати статистику");
+            Console.WriteLine("9 — демонстрація: значення й посилання");
             Console.WriteLine("0 — вихід");
             Console.Write("Ваш вибір: ");
         }
@@ -146,52 +145,52 @@ namespace AutoService
         }
 
         // Таблиця з двома входами: рядки — види робіт, стовпці — дні тижня
-        static void ShowWorkloadTable()
+        static void ShowWorkloadTable(string[] workTypes, double[] workPrices, string[] days)
         {
-            int rows = ReadInt("Кількість рядків (видів робіт)", 1, WorkTypes.Length);
-            int cols = ReadInt("Кількість стовпців (днів тижня)", 1, Days.Length);
+            int rows = ReadInt("Кількість рядків (видів робіт)", 1, workTypes.Length);
+            int cols = ReadInt("Кількість стовпців (днів тижня)", 1, days.Length);
 
             Console.WriteLine();
             Console.WriteLine("Виторг за видами робіт і днями тижня, грн");
 
-            PrintWorkloadHeader(cols);
+            PrintWorkloadHeader(days, cols);
             for (int r = 0; r < rows; r++)
             {
-                PrintWorkloadRow(r, cols);
+                PrintWorkloadRow(workTypes, workPrices, r, cols);
             }
-            PrintWorkloadFooter(rows, cols);
+            PrintWorkloadFooter(workPrices, rows, cols);
         }
 
         // Виводить шапку: дні тижня й стовпець підсумку
-        static void PrintWorkloadHeader(int cols)
+        static void PrintWorkloadHeader(string[] days, int cols)
         {
             Console.Write($"{"",-16}");
             for (int c = 0; c < cols; c++)
             {
-                Console.Write($"{Days[c],9}");
+                Console.Write($"{days[c],9}");
             }
             Console.WriteLine($"{"Разом",12}");
         }
 
         // Виводить один рядок таблиці: вид робіт, виторг по днях і підсумок рядка
-        static void PrintWorkloadRow(int r, int cols)
+        static void PrintWorkloadRow(string[] workTypes, double[] workPrices, int r, int cols)
         {
-            Console.Write($"{WorkTypes[r],-16}");
+            Console.Write($"{workTypes[r],-16}");
             for (int c = 0; c < cols; c++)
             {
-                Console.Write($"{CalculateRevenue(r, c),9:F0}");
+                Console.Write($"{CalculateRevenue(workPrices, r, c),9:F0}");
             }
-            Console.WriteLine($"{CalculateRowTotal(r, cols),12:F0}");
+            Console.WriteLine($"{CalculateRowTotal(workPrices, r, cols),12:F0}");
         }
 
         // Виводить рядок підсумків по стовпцях і загальний підсумок
-        static void PrintWorkloadFooter(int rows, int cols)
+        static void PrintWorkloadFooter(double[] workPrices, int rows, int cols)
         {
             Console.Write($"{"Разом",-16}");
             double grandTotal = 0;
             for (int c = 0; c < cols; c++)
             {
-                double columnTotal = CalculateColumnTotal(c, rows);
+                double columnTotal = CalculateColumnTotal(workPrices, c, rows);
                 Console.Write($"{columnTotal,9:F0}");
                 grandTotal += columnTotal;
             }
@@ -199,30 +198,30 @@ namespace AutoService
         }
 
         // Повертає виторг виду робіт r у день c (кількість замовлень × ціна)
-        static double CalculateRevenue(int r, int c)
+        static double CalculateRevenue(double[] workPrices, int r, int c)
         {
             int orders = ((r + 2) * (c + 3) + c) % 5 + 1; // умовна кількість замовлень
-            return orders * WorkPrices[r];
+            return orders * workPrices[r];
         }
 
         // Повертає суму виторгу виду робіт r за перші cols днів
-        static double CalculateRowTotal(int r, int cols)
+        static double CalculateRowTotal(double[] workPrices, int r, int cols)
         {
             double total = 0;
             for (int c = 0; c < cols; c++)
             {
-                total += CalculateRevenue(r, c);
+                total += CalculateRevenue(workPrices, r, c);
             }
             return total;
         }
 
         // Повертає суму виторгу дня c за перші rows видів робіт
-        static double CalculateColumnTotal(int c, int rows)
+        static double CalculateColumnTotal(double[] workPrices, int c, int rows)
         {
             double total = 0;
             for (int r = 0; r < rows; r++)
             {
-                total += CalculateRevenue(r, c);
+                total += CalculateRevenue(workPrices, r, c);
             }
             return total;
         }
@@ -349,6 +348,33 @@ namespace AutoService
             Console.WriteLine($"Записів: {count}");
             Console.WriteLine($"Сума: {sum:F2} грн");
             Console.WriteLine($"Середнє: {average:F2} грн");
+        }
+
+        // Намагається змінити int-параметр без ref: змінюється лише копія
+        static void TryIncreaseNumber(int value)
+        {
+            value = value + 100;
+        }
+
+        // Змінює елемент масиву: масив передається посиланням, тому зміну видно назовні
+        static void IncreaseFirstElement(int[] prices)
+        {
+            prices[0] = prices[0] + 100;
+        }
+
+        // Демонстрація різниці між значимим і посилальним типом
+        static void ShowPassingDemo()
+        {
+            int price = 50;
+            int[] prices = { 50, 70, 90 };
+
+            Console.WriteLine($"До виклику:    price = {price}, prices[0] = {prices[0]}");
+            TryIncreaseNumber(price);
+            IncreaseFirstElement(prices);
+            Console.WriteLine($"Після виклику: price = {price}, prices[0] = {prices[0]}");
+
+            Console.WriteLine("int передався копією, тому price не змінився.");
+            Console.WriteLine("Масив передався посиланням, тому prices[0] змінився.");
         }
         // Читає дійсне число з клавіатури в межах [min, max].
         // Питає знову, доки не отримає прийнятне значення.
